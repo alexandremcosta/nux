@@ -1,0 +1,39 @@
+<%# use phx-drop-target with the upload ref to enable file drag and drop %>
+<section phx-drop-target={@uploads.avatar.ref} class="rounded-2xl bg-zinc-50 px-2 py-4">
+  <p class="font-semibold mb-4">
+    Select CSV files to upload, or drag them here.
+  </p>
+
+  <%= for entry <- @uploads.avatar.entries do %>
+    <article class="upload-entry">
+      <p><%= entry.client_name %></p>
+
+      <%# entry.progress will update automatically for in-flight entries %>
+      <progress value={entry.progress} max="100"> <%= entry.progress %>% </progress>
+
+      <%# a regular click event whose handler will invoke Phoenix.LiveView.cancel_upload/3 %>
+      <button type="button" phx-click="cancel-upload" phx-value-ref={entry.ref} aria-label="cancel">&times;</button>
+
+      <%# Phoenix.Component.upload_errors/2 returns a list of error atoms %>
+      <%= for err <- upload_errors(@uploads.avatar, entry) do %>
+        <p class="alert alert-danger"><%= error_to_string(err) %></p>
+      <% end %>
+    </article>
+  <% end %>
+
+  <%# Phoenix.Component.upload_errors/1 returns a list of error atoms %>
+  <%= for err <- upload_errors(@uploads.avatar) do %>
+    <p class="alert alert-danger"><%= error_to_string(err) %></p>
+  <% end %>
+
+  <form id="upload-form" phx-submit="save" phx-change="validate">
+    <.live_file_input upload={@uploads.avatar} />
+    <button type="submit" class="rounded-lg bg-zinc-200 px-2 py-1 text-[0.8125rem] font-semibold leading-6 text-zinc-900 hover:bg-zinc-300/80 active:text-zinc-900/70">Upload</button>
+  </form>
+
+</section>
+
+<%= for {filename, content} <- @uploaded_files do %>
+  <%= if Csv.is_card?(content), do: "Card: ", else: "Checking: " %><%= filename %><br>
+<% end %>
+
