@@ -7,7 +7,7 @@ defmodule NuxWeb.UploadLive do
     {:ok,
      socket
      |> assign(:uploaded_files, %{})
-     |> allow_upload(:avatar, accept: ~w(.csv), max_entries: 100)}
+     |> allow_upload(:avatar, accept: ~w(.csv), max_entries: 100, auto_upload: true)}
   end
 
   @impl Phoenix.LiveView
