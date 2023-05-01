@@ -1,9 +1,9 @@
-<section phx-drop-target={@uploads.bank_statement.ref} class="rounded-2xl bg-zinc-50 px-2 py-4">
+<section phx-drop-target={@uploads.csv_file.ref} class="rounded-2xl bg-zinc-50 px-2 py-4">
   <h2 class="font-semibold mb-4">
     Select CSV files to upload, or drag them here.
   </h2>
 
-  <%= for entry <- @uploads.bank_statement.entries do %>
+  <%= for entry <- @uploads.csv_file.entries do %>
     <article class="upload-entry">
       <p><%= entry.client_name %></p>
 
@@ -18,18 +18,18 @@
         &times;
       </button>
 
-      <%= for err <- upload_errors(@uploads.bank_statement, entry) do %>
+      <%= for err <- upload_errors(@uploads.csv_file, entry) do %>
         <p class="alert alert-danger"><%= error_to_string(err) %></p>
       <% end %>
     </article>
   <% end %>
 
-  <%= for err <- upload_errors(@uploads.bank_statement) do %>
+  <%= for err <- upload_errors(@uploads.csv_file) do %>
     <p class="alert alert-danger"><%= error_to_string(err) %></p>
   <% end %>
 
   <form id="upload-form" phx-submit="save" phx-change="validate">
-    <.live_file_input upload={@uploads.bank_statement} />
+    <.live_file_input upload={@uploads.csv_file} />
     <button
       type="submit"
       class="rounded-lg bg-zinc-200 px-2 py-1 text-[0.8125rem] font-semibold leading-6 text-zinc-900 hover:bg-zinc-300/80 active:text-zinc-900/70"
@@ -39,62 +39,27 @@
   </form>
 </section>
 
-<%= if Enum.any?(@transactions) do %>
+<%= if Enum.any?(@files) do %>
   <h3 class="font-semibold">Loaded files</h3>
-<% end %>
 
-<ul class="list-decimal">
-  <%= for {filename, content} <- @transactions do %>
-    <li>
-      <%= filename %> <%= if Csv.is_card?(content), do: "(card)", else: "(checking)" %>
-    </li>
-  <% end %>
-</ul>
-
-<%= if Enum.any?(@transactions) do %>
-  <h3 class="font-semibold">By category/date</h3>
-
-  <% grouped =
-    @transactions
-    |> Map.values()
-    |> Csv.load_and_flatten()
-    |> Enum.group_by(&{&1["category"], &1["date"].month}, & &1) %>
-
-  <table>
-    <tr>
-      <th></th>
-      <%= for m <- Csv.get_months(grouped) do %>
-        <th><%= m %></th>
-      <% end %>
-    </tr>
-
-    <%= for c <- Csv.get_categories(grouped) do %>
-      <tr>
-        <td><%= c %></td>
-
-        <%= for m <- Csv.get_months(grouped) do %>
-          <% sum = grouped |> Map.get({c, m}, []) |> Enum.map(& &1["amount"]) |> Enum.sum() %>
-          <td><%= (1.0 * sum) |> :erlang.float_to_binary([:compact, decimals: 2]) %></td>
-        <% end %>
-      </tr>
+  <p>
+    <%= for {filename, content} <- @files do %>
+      <details class="file">
+        <summary><%= filename %></summary>
+        <pre><%= content %></pre>
+      </details>
     <% end %>
-
-    <tr>
-      <td>total</td>
-      <% grouped_by_month =
-        @transactions
-        |> Map.values()
-        |> Csv.load_and_flatten()
-        |> Enum.group_by(& &1["date"].month, & &1["amount"]) %>
-
-      <%= for m <- Csv.get_months(grouped) do %>
-        <% sum = grouped_by_month[m] |> Enum.sum() %>
-        <th>
-          <%= (1.0 * sum)
-          |> :erlang.float_to_binary([:compact, decimals: 2])
-          |> String.pad_leading(10) %>
-        </th>
-      <% end %>
-    </tr>
-  </table>
+  </p>
 <% end %>
+
+<%= if Enum.any?(@sheet) do %>
+  <h3 class="font-semibold">Expense Sheet</h3>
+
+  <p>
+    <%= for {category, by_period} <- @sheet do %>
+      <summary><%= category %></summary>
+      <pre><%= inspect(by_period, pretty: true) %></pre>
+    <% end %>
+  </p>
+<% end %>
+

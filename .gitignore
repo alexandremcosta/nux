@@ -32,3 +32,9 @@ nux-*.tar
 npm-debug.log
 /assets/node_modules/
 
+
+# Devenv
+.devenv*
+devenv.local.nix
+.DS_store
+/priv/csv

@@ -1,13 +1,13 @@
 defmodule NuxWeb.UploadLive do
   use NuxWeb, :live_view
-  alias Nux.Csv
 
   @impl Phoenix.LiveView
   def mount(_params, _session, socket) do
     {:ok,
      socket
-     |> assign(:transactions, %{})
-     |> allow_upload(:bank_statement, accept: ~w(.csv), max_entries: 100, auto_upload: true)}
+     |> assign(:files, [])
+     |> assign(:sheet, %{})
+     |> allow_upload(:csv_file, accept: ~w(.csv), max_entries: 100, auto_upload: true)}
   end
 
   @impl Phoenix.LiveView
@@ -17,18 +17,17 @@ defmodule NuxWeb.UploadLive do
 
   @impl Phoenix.LiveView
   def handle_event("cancel-upload", %{"ref" => ref}, socket) do
-    {:noreply, cancel_upload(socket, :bank_statement, ref)}
+    {:noreply, cancel_upload(socket, :csv_file, ref)}
   end
 
   @impl Phoenix.LiveView
   def handle_event("save", _params, socket) do
-    transactions =
-      consume_uploaded_entries(socket, :bank_statement, fn %{path: path},
-                                                           %{client_name: filename} ->
+    files =
+      consume_uploaded_entries(socket, :csv_file, fn %{path: path}, %{client_name: filename} ->
         {:ok, {filename, File.read!(path)}}
       end)
 
-    {:noreply, update(socket, :transactions, &Enum.into(transactions, &1))}
+    {:noreply, update(socket, :files, & files ++ &1)}
   end
 
   defp error_to_string(:too_large), do: "Too large"
