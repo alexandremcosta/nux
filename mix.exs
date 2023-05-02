@@ -51,8 +51,7 @@ defmodule Nux.MixProject do
       {:gettext, "~> 0.20"},
       {:jason, "~> 1.2"},
       {:plug_cowboy, "~> 2.5"},
-      {:explorer, "~> 0.4.0"},
-      {:csv, "~> 3.0"}
+      {:nimble_csv, "~> 1.0"}
     ]
   end
 

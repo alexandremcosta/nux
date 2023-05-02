@@ -3,9 +3,3 @@
 @import "tailwindcss/utilities";
 
 /* This file is for your main application CSS */
-details.file pre {
-  overflow-x: scroll;
-  box-shadow: 0.5em 0.5em 2em #999;
-  margin: 1em 0em 2em;
-  padding: 1em;
-}

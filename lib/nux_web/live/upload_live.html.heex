@@ -1,6 +1,9 @@
-<section phx-drop-target={@uploads.csv_file.ref} class="rounded-2xl bg-zinc-50 px-2 py-4">
-  <h2 class="font-semibold mb-4">
-    Select CSV files to upload, or drag them here.
+<section
+  phx-drop-target={@uploads.csv_file.ref}
+  class="inline-block mx-auto rounded-2xl bg-zinc-50 px-2 py-4"
+>
+  <h2 class="font-semibold mb-4 text-lg">
+    Selecione arquivos CSV ou arraste para essa área.
   </h2>
 
   <%= for entry <- @uploads.csv_file.entries do %>
@@ -34,32 +37,163 @@
       type="submit"
       class="rounded-lg bg-zinc-200 px-2 py-1 text-[0.8125rem] font-semibold leading-6 text-zinc-900 hover:bg-zinc-300/80 active:text-zinc-900/70"
     >
-      Add
+      Carregar
     </button>
   </form>
 </section>
 
 <%= if Enum.any?(@files) do %>
-  <h3 class="font-semibold">Loaded files</h3>
+  <details>
+    <summary class="font-semibold">Mostrar arquivos carregados</summary>
 
-  <p>
-    <%= for {filename, content} <- @files do %>
-      <details class="file">
+    <%= for {filename, cashflows} <- @files do %>
+      <details class="ml-4">
         <summary><%= filename %></summary>
-        <pre><%= content %></pre>
+        <div class="inline-block p-2 m-2 shadow-lg rounded-lg border-solid border-2 border-slate-200">
+          <table>
+            <tr>
+              <th>Data</th>
+              <th>Valor</th>
+              <th>Título</th>
+            </tr>
+            <%= for flow <- cashflows do %>
+              <tr>
+                <td><%= flow.date %></td>
+                <td><%= flow.amount %></td>
+                <td><%= flow.title %></td>
+              </tr>
+            <% end %>
+          </table>
+        </div>
       </details>
     <% end %>
-  </p>
+  </details>
 <% end %>
 
-<%= if Enum.any?(@sheet) do %>
-  <h3 class="font-semibold">Expense Sheet</h3>
+<%= if Enum.any?(@sheet_by_category_and_period) do %>
+  <h3 class="font-semibold mt-4 text-lg" id="sheet">Clique no valor para ver os lançamentos</h3>
 
-  <p>
-    <%= for {category, by_period} <- @sheet do %>
-      <summary><%= category %></summary>
-      <pre><%= inspect(by_period, pretty: true) %></pre>
-    <% end %>
-  </p>
+  <% periods = Map.keys(@sheet_by_period_and_category) %>
+
+  <div class="inline-block p-2 m-2 shadow-lg rounded-lg border-solid border-2 border-slate-200">
+    <table class="text-right">
+      <tr class="border-b-2">
+        <th>Categoria</th>
+        <%= for period <- periods do %>
+          <th>&nbsp;&nbsp;<%= period %></th>
+        <% end %>
+      </tr>
+      <%= for {category, by_period} <- @sheet_by_category_and_period do %>
+        <tr>
+          <td><%= category || "sem categoria" %></td>
+          <%= for period <- periods do %>
+            <%= if Map.has_key?(by_period, period) do %>
+              <td>
+                <a href={"##{category}-#{period}"} class="text-blue-600 font-bold">
+                  <%= Cashflow.sum_amounts(by_period[period]) %>
+                </a>
+              </td>
+            <% else %>
+              <td>0.00</td>
+            <% end %>
+          <% end %>
+        </tr>
+      <% end %>
+      <tr class="font-bold border-t-2">
+        <td>Total</td>
+        <%= for period <- periods do %>
+          <td>
+            <%= @sheet_by_category_and_period
+            |> Sheet.list_cashflows(period)
+            |> Cashflow.sum_amounts() %>
+          </td>
+        <% end %>
+      </tr>
+    </table>
+  </div>
+
+  <div class="grid grid-cols-2">
+    <div>
+      <h3 class="font-semibold mt-4 text-lg">Lançamentos</h3>
+
+      <div class="inline-block p-2 m-2 shadow-lg rounded-lg border-solid border-2 border-slate-200">
+        <table>
+          <tr>
+            <th>Categoria</th>
+            <th>Data</th>
+            <th>Valor</th>
+            <th>Título</th>
+          </tr>
+          <%= for {period, by_category} <- @sheet_by_period_and_category do %>
+            <%= for {category, cashflows} <- by_category do %>
+              <tr id={"#{category}-#{period}"} class="font-bold border-t-2">
+                <td><%= category || "sem categoria" %></td>
+                <td><%= period %></td>
+                <td></td>
+                <td></td>
+              </tr>
+              <%= for flow <- cashflows do %>
+                <tr>
+                  <td></td>
+                  <td><%= flow.date %></td>
+                  <td class="text-right">&nbsp;&nbsp;<%= flow.amount %>&nbsp;&nbsp;</td>
+                  <td><%= flow.title %></td>
+                </tr>
+              <% end %>
+              <%= if length(cashflows) > 5 do %>
+                <tr>
+                  <td class="text-blue-600 font-bold"><a href="#sheet">voltar ao topo</a></td>
+                  <td></td>
+                  <td></td>
+                  <td></td>
+                </tr>
+              <% end %>
+            <% end %>
+          <% end %>
+        </table>
+      </div>
+    </div>
+
+    <div>
+      <h3 class="font-semibold mt-4 text-lg">Troca de categoria</h3>
+
+      <.form for={:cashflow} phx-change="validate_category" phx-submit="save_category">
+        <input
+          type="text"
+          name="cashflow[title]"
+          value={@cashflow_title}
+          placeholder="subtítulo do lançamento"
+        />
+
+        <select name="cashflow[category]">
+          <%= for category <- Map.keys(@sheet_by_category_and_period) do %>
+            <option value={category}><%= category %></option>
+          <% end %>
+        </select>
+        <button type="submit">Save</button>
+      </.form>
+
+      <%= if Enum.any?(@cashflow_found) do %>
+        <p class="text-xs italic">
+          Encontrados <%= length(@cashflow_found) %> lançamentos...
+          <table>
+            <tr>
+              <th>Categoria</th>
+              <th>Data</th>
+              <th>Título</th>
+              <th>Valor</th>
+            </tr>
+            <%= for cashflow <- @cashflow_found do %>
+              <tr>
+                <td><%= cashflow.category %></td>
+                <td><%= cashflow.date %></td>
+                <td><%= cashflow.title %></td>
+                <td><%= cashflow.amount %></td>
+              </tr>
+            <% end %>
+          </table>
+        </p>
+      <% end %>
+    </div>
+  </div>
 <% end %>
-
