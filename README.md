@@ -1,19 +1,15 @@
 # Nux
 
-To start your Phoenix server:
+Expense tracker for Nubank.
 
-  * Install dependencies with `mix deps.get`
-  * Create and migrate your database with `mix ecto.setup`
-  * Start Phoenix endpoint with `mix phx.server` or inside IEx with `iex -S mix phx.server`
+1. Upload CSV files from checking account or credit card
+1. Group by and sum expenses by category and period, display in a table
+1. See detailed expenses for each cell
+1. Change expense categories
 
-Now you can visit [`localhost:4000`](http://localhost:4000) from your browser.
+TODO
 
-Ready to run in production? Please [check our deployment guides](https://hexdocs.pm/phoenix/deployment.html).
-
-## Learn more
-
-  * Official website: https://www.phoenixframework.org/
-  * Guides: https://hexdocs.pm/phoenix/overview.html
-  * Docs: https://hexdocs.pm/phoenix
-  * Forum: https://elixirforum.com/c/phoenix-forum
-  * Source: https://github.com/phoenixframework/phoenix
+1. Save expenses and categories
+1. Load categories
+1. Display type (credit_card/checking_account)
+1. Display total while searching expenses

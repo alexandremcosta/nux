@@ -1,10 +1,32 @@
+<p class="text-lg font-bold">Como funciona?</p>
+
+<p class="font-semibold mb-4 text-lg">
+  <ul>
+    <li>
+      1. Entre no site do Nubank pelo computador e exporte os CSVs de faturas do cartão de crédito
+    </li>
+    <li>
+      2. Entre no aplicativo do Nubank pelo celular, peça os extratos pelo menu da conta corrente, e baixe os CSVs no seu email
+    </li>
+    <li>
+      3. Faça o upload dos CSVs aqui, não se preocupe pois nada é salvo no servidor, o código é 100% aberto para inspeção
+    </li>
+    <li>
+      4. Troque a categoria de lançamentos que não estão corretos, e adicione categorias para lançamentos que não tem
+    </li>
+    <li>
+      5. Exporte o resultado e importe no futuro para manter as alterações de categoria
+    </li>
+  </ul>
+</p>
+
 <section
   phx-drop-target={@uploads.csv_file.ref}
   class="inline-block mx-auto rounded-2xl bg-zinc-50 px-2 py-4"
 >
-  <h2 class="font-semibold mb-4 text-lg">
+  <p class="font-semibold mb-4 text-lg">
     Selecione arquivos CSV ou arraste para essa área.
-  </h2>
+  </p>
 
   <%= for entry <- @uploads.csv_file.entries do %>
     <article class="upload-entry">
@@ -167,10 +189,11 @@
           value={@cashflow_title}
           placeholder="subtítulo do lançamento"
           class="rounded-lg border-2 border-slate-200"
+          autocomplete="off"
         />
 
         <select name="cashflow[category]" class="rounded-lg border-2 border-slate-200">
-          <%= for category <- Map.keys(@sheet) do %>
+          <%= for category <- Map.keys(@sheet), not is_nil(category) do %>
             <option value={category}><%= category %></option>
           <% end %>
         </select>
@@ -183,7 +206,7 @@
       </.form>
 
       <%= if Enum.any?(@cashflow_found) do %>
-        <p class="text-xs italic">
+        <p class="text-xs italic ml-4">
           Encontrados <%= length(@cashflow_found) %> lançamentos...
           <table>
             <tr>
@@ -194,10 +217,18 @@
             </tr>
             <%= for cashflow <- @cashflow_found do %>
               <tr>
-                <td><%= cashflow.category %></td>
+                <td><%= cashflow.category || "sem categoria" %></td>
                 <td><%= cashflow.date %></td>
                 <td><%= cashflow.title %></td>
                 <td><%= cashflow.amount %></td>
+              </tr>
+            <% end %>
+            <%= if Enum.any?(@cashflow_found) do %>
+              <tr>
+                <td></td>
+                <td></td>
+                <td class="font-bold text-right">Total</td>
+                <td><%= Cashflow.sum_amounts(@cashflow_found) %></td>
               </tr>
             <% end %>
           </table>
