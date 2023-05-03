@@ -92,6 +92,6 @@ defmodule Nux.Cashflow do
   def sum_amounts(cashflows) do
     cashflows
     |> Enum.map(& &1.amount)
-    |> Enum.reduce(&Decimal.add/2)
+    |> Enum.reduce(0, &Decimal.add/2)
   end
 end

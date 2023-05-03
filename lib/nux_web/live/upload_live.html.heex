@@ -44,7 +44,7 @@
 
 <%= if Enum.any?(@files) do %>
   <details>
-    <summary class="font-semibold">Mostrar arquivos carregados</summary>
+    <summary class="font-semibold">Arquivos carregados</summary>
 
     <%= for {filename, cashflows} <- @files do %>
       <details class="ml-4">
@@ -70,10 +70,10 @@
   </details>
 <% end %>
 
-<%= if Enum.any?(@sheet_by_category_and_period) do %>
+<%= if Enum.any?(@sheet) do %>
   <h3 class="font-semibold mt-4 text-lg" id="sheet">Clique no valor para ver os lançamentos</h3>
 
-  <% periods = Map.keys(@sheet_by_period_and_category) %>
+  <% periods = Sheet.list_all_periods(@sheet) %>
 
   <div class="inline-block p-2 m-2 shadow-lg rounded-lg border-solid border-2 border-slate-200">
     <table class="text-right">
@@ -83,19 +83,15 @@
           <th>&nbsp;&nbsp;<%= period %></th>
         <% end %>
       </tr>
-      <%= for {category, by_period} <- @sheet_by_category_and_period do %>
+      <%= for {category, by_period} <- @sheet do %>
         <tr>
           <td><%= category || "sem categoria" %></td>
           <%= for period <- periods do %>
-            <%= if Map.has_key?(by_period, period) do %>
-              <td>
-                <a href={"##{category}-#{period}"} class="text-blue-600 font-bold">
-                  <%= Cashflow.sum_amounts(by_period[period]) %>
-                </a>
-              </td>
-            <% else %>
-              <td>0.00</td>
-            <% end %>
+            <td>
+              <a href={"##{category}-#{period}"} class="text-blue-600 font-bold">
+                <%= by_period |> Sheet.find_cashflows(period) |> Cashflow.sum_amounts() %>
+              </a>
+            </td>
           <% end %>
         </tr>
       <% end %>
@@ -103,7 +99,7 @@
         <td>Total</td>
         <%= for period <- periods do %>
           <td>
-            <%= @sheet_by_category_and_period
+            <%= @sheet
             |> Sheet.list_cashflows(period)
             |> Cashflow.sum_amounts() %>
           </td>
@@ -116,61 +112,74 @@
     <div>
       <h3 class="font-semibold mt-4 text-lg">Lançamentos</h3>
 
-      <div class="inline-block p-2 m-2 shadow-lg rounded-lg border-solid border-2 border-slate-200">
-        <table>
-          <tr>
-            <th>Categoria</th>
-            <th>Data</th>
-            <th>Valor</th>
-            <th>Título</th>
-          </tr>
-          <%= for {period, by_category} <- @sheet_by_period_and_category do %>
-            <%= for {category, cashflows} <- by_category do %>
-              <tr id={"#{category}-#{period}"} class="font-bold border-t-2">
-                <td><%= category || "sem categoria" %></td>
-                <td><%= period %></td>
+      <%= for {category, by_period} <- @sheet do %>
+        <div class="mx-4 p-2 m-2 shadow-lg rounded-lg border-solid border-2 border-slate-200">
+          <table>
+            <tr>
+              <th><%= category || "sem categoria" %></th>
+              <th></th>
+              <th></th>
+            </tr>
+            <%= for {period, cashflows} <- by_period do %>
+              <%= for flow <- cashflows do %>
+                <tr id={"#{category}-#{period}"}>
+                  <td class="text-right"><%= flow.date %></td>
+                  <td class="text-right">&nbsp;&nbsp;<%= flow.amount %>&nbsp;&nbsp;</td>
+                  <td>
+                    <a href="#sheet" phx-click="change_form" phx-value-title={flow.title}>
+                      <%= flow.title %>
+                    </a>
+                  </td>
+                </tr>
+              <% end %>
+              <tr>
+                <td class="text-right text-sm font-bold">total</td>
+                <td class="text-right"><%= Cashflow.sum_amounts(cashflows) %></td>
                 <td></td>
                 <td></td>
               </tr>
-              <%= for flow <- cashflows do %>
-                <tr>
-                  <td></td>
-                  <td><%= flow.date %></td>
-                  <td class="text-right">&nbsp;&nbsp;<%= flow.amount %>&nbsp;&nbsp;</td>
-                  <td><%= flow.title %></td>
-                </tr>
-              <% end %>
-              <%= if length(cashflows) > 5 do %>
-                <tr>
-                  <td class="text-blue-600 font-bold"><a href="#sheet">voltar ao topo</a></td>
-                  <td></td>
-                  <td></td>
-                  <td></td>
-                </tr>
-              <% end %>
+              <tr>
+                <td>&nbsp;</td>
+                <td></td>
+                <td></td>
+                <td></td>
+              </tr>
             <% end %>
-          <% end %>
-        </table>
-      </div>
+          </table>
+        </div>
+      <% end %>
     </div>
 
     <div>
-      <h3 class="font-semibold mt-4 text-lg">Troca de categoria</h3>
+      <.form
+        class="ml-4"
+        for={:cashflow}
+        phx-change="validate_category"
+        phx-submit="save_category"
+      >
+        <h3 class="font-semibold mt-4 text-lg">
+          Troca de categoria
+        </h3>
 
-      <.form for={:cashflow} phx-change="validate_category" phx-submit="save_category">
         <input
           type="text"
           name="cashflow[title]"
           value={@cashflow_title}
           placeholder="subtítulo do lançamento"
+          class="rounded-lg border-2 border-slate-200"
         />
 
-        <select name="cashflow[category]">
-          <%= for category <- Map.keys(@sheet_by_category_and_period) do %>
+        <select name="cashflow[category]" class="rounded-lg border-2 border-slate-200">
+          <%= for category <- Map.keys(@sheet) do %>
             <option value={category}><%= category %></option>
           <% end %>
         </select>
-        <button type="submit">Save</button>
+        <button
+          type="submit"
+          class="rounded-lg bg-zinc-200 px-2 py-1 text-[0.8125rem] font-semibold leading-6 text-zinc-900 hover:bg-zinc-300/80 active:text-zinc-900/70"
+        >
+          Atualizar
+        </button>
       </.form>
 
       <%= if Enum.any?(@cashflow_found) do %>

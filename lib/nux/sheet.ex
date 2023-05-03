@@ -49,10 +49,11 @@ defmodule Nux.Sheet do
   defp group_by_period(cashflows, period_kind) do
     cashflows
     |> Enum.group_by(beginning_of_function(period_kind))
-    |> Map.new(fn {start_date, cashflows} ->
+    |> Enum.map(fn {start_date, cashflows} ->
       sorted_cashflows = Enum.sort_by(cashflows, & &1.date, Date)
       {start_date, sorted_cashflows}
     end)
+    |> Enum.sort_by(fn {start_date, _cashflows} -> start_date end, Date)
   end
 
   defp beginning_of_function(period_kind) do
@@ -73,14 +74,26 @@ defmodule Nux.Sheet do
 
   def list_all_periods(sheet) do
     sheet
-    |> Enum.flat_map(fn {_category, by_period} -> Map.keys(by_period) end)
+    |> Enum.flat_map(fn {_category, by_period} ->
+      Enum.map(by_period, fn {period, _cashflows} -> period end)
+    end)
     |> Enum.uniq()
     |> Enum.sort(Date)
   end
 
   def list_cashflows(sheet, period) do
-    Enum.flat_map(sheet, fn {_, by_period} ->
-      Map.get(by_period, period, [])
+    Enum.flat_map(sheet, fn {_category, by_period} ->
+      find_cashflows(by_period, period)
     end)
+  end
+
+  def find_cashflows(by_period, period) do
+    Enum.find_value(
+      by_period,
+      [],
+      fn {p, cashflows} ->
+        if p == period, do: cashflows
+      end
+    )
   end
 end

@@ -7,8 +7,7 @@ defmodule NuxWeb.UploadLive do
     {:ok,
      socket
      |> assign(:files, [])
-     |> assign(:sheet_by_category_and_period, %{})
-     |> assign(:sheet_by_period_and_category, %{})
+     |> assign(:sheet, %{})
      |> assign(:cashflows, [])
      |> assign(:cashflow_found, [])
      |> assign(:cashflow_title, "")
@@ -35,15 +34,13 @@ defmodule NuxWeb.UploadLive do
 
     files = files ++ socket.assigns.files
     cashflows = Enum.flat_map(files, fn {_filename, cashflows} -> cashflows end)
-    sheet_by_category_and_period = Sheet.group_by_category_and_period(cashflows, :month)
-    sheet_by_period_and_category = Sheet.group_by_period_and_category(cashflows, :month)
+    sheet = Sheet.group_by_category_and_period(cashflows, :month)
 
     {:noreply,
      socket
      |> assign(:files, files)
      |> assign(:cashflows, cashflows)
-     |> assign(:sheet_by_category_and_period, sheet_by_category_and_period)
-     |> assign(:sheet_by_period_and_category, sheet_by_period_and_category)}
+     |> assign(:sheet, sheet)}
   end
 
   @impl Phoenix.LiveView
@@ -54,9 +51,11 @@ defmodule NuxWeb.UploadLive do
       {:noreply, assign(socket, :cashflow_found, [])}
     else
       cashflows =
-        Enum.filter(socket.assigns.cashflows, fn %{title: title} ->
+        socket.assigns.cashflows
+        |> Enum.filter(fn %{title: title} ->
           String.contains?(String.downcase(title), String.downcase(subtitle))
         end)
+        |> Enum.sort_by(& &1.date, {:desc, Date})
 
       {:noreply, assign(socket, :cashflow_found, cashflows)}
     end
@@ -77,8 +76,7 @@ defmodule NuxWeb.UploadLive do
         end
       end)
 
-    sheet_by_category_and_period = Sheet.group_by_category_and_period(cashflows, :month)
-    sheet_by_period_and_category = Sheet.group_by_period_and_category(cashflows, :month)
+    sheet = Sheet.group_by_category_and_period(cashflows, :month)
 
     {:noreply,
      socket
@@ -86,8 +84,20 @@ defmodule NuxWeb.UploadLive do
      |> assign(:cashflow_title, "")
      |> assign(:cashflow_category, "")
      |> assign(:cashflows, cashflows)
-     |> assign(:sheet_by_category_and_period, sheet_by_category_and_period)
-     |> assign(:sheet_by_period_and_category, sheet_by_period_and_category)}
+     |> assign(:sheet, sheet)}
+  end
+
+  def handle_event("change_form", params, socket) do
+    query = params["title"]
+
+    cashflows =
+      socket.assigns.cashflows
+      |> Enum.filter(fn %{title: title} ->
+        String.contains?(String.downcase(title), String.downcase(query))
+      end)
+      |> Enum.sort_by(& &1.date, {:desc, Date})
+
+    {:noreply, socket |> assign(:cashflow_title, query) |> assign(:cashflow_found, cashflows)}
   end
 
   defp error_to_string(:too_large), do: "Too large"
