@@ -68,7 +68,7 @@
   <details>
     <summary class="font-semibold">Arquivos carregados</summary>
 
-    <%= for {filename, cashflows} <- @files do %>
+    <%= for {filename, transfers} <- @files do %>
       <details class="ml-4">
         <summary><%= filename %></summary>
         <div class="inline-block p-2 m-2 shadow-lg rounded-lg border-solid border-2 border-slate-200">
@@ -78,7 +78,7 @@
               <th>Valor</th>
               <th>Título</th>
             </tr>
-            <%= for flow <- cashflows do %>
+            <%= for flow <- transfers do %>
               <tr>
                 <td><%= flow.date %></td>
                 <td><%= flow.amount %></td>
@@ -111,7 +111,7 @@
           <%= for period <- periods do %>
             <td>
               <a href={"##{category}-#{period}"} class="text-blue-600 font-bold">
-                <%= by_period |> Sheet.find_cashflows(period) |> Cashflow.sum_amounts() %>
+                <%= by_period |> Sheet.find_transfer(period) |> Transfer.sum_amounts() %>
               </a>
             </td>
           <% end %>
@@ -121,9 +121,7 @@
         <td>Total</td>
         <%= for period <- periods do %>
           <td>
-            <%= @sheet
-            |> Sheet.list_cashflows(period)
-            |> Cashflow.sum_amounts() %>
+            <%= @sheet |> Sheet.list_transfers(period) |> Transfer.sum_amounts() %>
           </td>
         <% end %>
       </tr>
@@ -142,8 +140,8 @@
               <th></th>
               <th></th>
             </tr>
-            <%= for {period, cashflows} <- by_period do %>
-              <%= for flow <- cashflows do %>
+            <%= for {period, transfers} <- by_period do %>
+              <%= for flow <- transfers do %>
                 <tr id={"#{category}-#{period}"}>
                   <td class="text-right"><%= flow.date %></td>
                   <td class="text-right">&nbsp;&nbsp;<%= flow.amount %>&nbsp;&nbsp;</td>
@@ -156,7 +154,7 @@
               <% end %>
               <tr>
                 <td class="text-right text-sm font-bold">total</td>
-                <td class="text-right"><%= Cashflow.sum_amounts(cashflows) %></td>
+                <td class="text-right"><%= Transfer.sum_amounts(transfers) %></td>
                 <td></td>
                 <td></td>
               </tr>
@@ -175,7 +173,7 @@
     <div>
       <.form
         class="ml-4"
-        for={:cashflow}
+        for={:transfer}
         phx-change="validate_category"
         phx-submit="save_category"
       >
@@ -185,14 +183,14 @@
 
         <input
           type="text"
-          name="cashflow[title]"
-          value={@cashflow_title}
+          name="transfer[title]"
+          value={@transfer_title}
           placeholder="subtítulo do lançamento"
           class="rounded-lg border-2 border-slate-200"
           autocomplete="off"
         />
 
-        <select name="cashflow[category]" class="rounded-lg border-2 border-slate-200">
+        <select name="transfer[category]" class="rounded-lg border-2 border-slate-200">
           <%= for category <- Map.keys(@sheet), not is_nil(category) do %>
             <option value={category}><%= category %></option>
           <% end %>
@@ -205,9 +203,9 @@
         </button>
       </.form>
 
-      <%= if Enum.any?(@cashflow_found) do %>
+      <%= if Enum.any?(@transfer_found) do %>
         <p class="text-xs italic ml-4">
-          Encontrados <%= length(@cashflow_found) %> lançamentos...
+          Encontrados <%= length(@transfer_found) %> lançamentos...
           <table>
             <tr>
               <th>Categoria</th>
@@ -215,20 +213,20 @@
               <th>Título</th>
               <th>Valor</th>
             </tr>
-            <%= for cashflow <- @cashflow_found do %>
+            <%= for transfer <- @transfer_found do %>
               <tr>
-                <td><%= cashflow.category || "sem categoria" %></td>
-                <td><%= cashflow.date %></td>
-                <td><%= cashflow.title %></td>
-                <td><%= cashflow.amount %></td>
+                <td><%= transfer.category || "sem categoria" %></td>
+                <td><%= transfer.date %></td>
+                <td><%= transfer.title %></td>
+                <td><%= transfer.amount %></td>
               </tr>
             <% end %>
-            <%= if Enum.any?(@cashflow_found) do %>
+            <%= if Enum.any?(@transfer_found) do %>
               <tr>
                 <td></td>
                 <td></td>
                 <td class="font-bold text-right">Total</td>
-                <td><%= Cashflow.sum_amounts(@cashflow_found) %></td>
+                <td><%= Transfer.sum_amounts(@transfer_found) %></td>
               </tr>
             <% end %>
           </table>

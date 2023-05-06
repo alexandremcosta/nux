@@ -1,9 +1,9 @@
-defmodule Nux.Cashflow do
-  @moduledoc "Cashflow is a struct that represents a single row on Nubank's CSV file."
+defmodule Nux.Transfer do
+  @moduledoc "Transfer is a struct that represents a single row the CSV file."
   defstruct [:date, :category, :title, :amount, :type]
   NimbleCSV.define(CSVParser, escape: "\\")
 
-  @type cashflow :: %{
+  @type transfer :: %{
           date: Date.t(),
           category: String.t() | nil,
           title: String.t(),
@@ -12,46 +12,37 @@ defmodule Nux.Cashflow do
         }
 
   @doc """
-  Lists cashflows from a CSV file.
+  Lists transfers from a CSV file.
 
   ## Example
 
-      iex> path = Path.join([__DIR__, "..", "test", "fixtures", "nubank.csv"])
-      iex> Cashflow.list_from_file(path)
+      iex> path = :code.priv_dir(:nux) |> Path.join(["fixtures/", "file.csv/"])
+      iex> Transfer.list_from_file!(path)
       [
-        %Cashflow{
-          amount: Decimal.new("10.00"),
+        %Transfer{
+          amount: Decimal.new("-10.00"),
           category: "food",
           date: ~D[2021-01-01],
-          title: "McDonalds",
+          title: "Mc Donalds",
           type: :credit_card
         }
       ]
   """
-  @spec list_from_file!(Path.t()) :: [cashflow()]
+  @spec list_from_file!(Path.t()) :: [transfer()]
   def list_from_file!(path) do
     stream = path |> File.stream!() |> CSVParser.parse_stream(skip_headers: false)
     header = stream |> Enum.take(1) |> List.first()
 
     stream
     |> Stream.drop(1)
-    |> Stream.map(mapper!(header))
+    |> Stream.map(fn row -> new(row, header) end)
     |> Enum.to_list()
   end
 
-  @credit_card_headers ["date", "category", "title", "amount"]
-  @checking_account_headers ["Data", "Valor", "Identificador", "Descrição"]
-  defp mapper!(headers) do
-    type =
-      case headers do
-        @credit_card_headers -> :credit_card
-        @checking_account_headers -> :checking_account
-      end
+  @credit_card_header ["date", "category", "title", "amount"]
+  @checking_account_header ["Data", "Valor", "Identificador", "Descrição"]
 
-    fn row -> new(row, type) end
-  end
-
-  defp new([date, category, title, amount], :credit_card) do
+  defp new([date, category, title, amount], @credit_card_header) do
     %__MODULE__{
       amount: amount |> Decimal.new() |> Decimal.negate(),
       category: if(category != "", do: category),
@@ -61,7 +52,7 @@ defmodule Nux.Cashflow do
     }
   end
 
-  defp new([date, amount, _id, title], :checking_account) do
+  defp new([date, amount, _id, title], @checking_account_header) do
     %__MODULE__{
       amount: Decimal.new(amount),
       category: nil,
@@ -77,20 +68,20 @@ defmodule Nux.Cashflow do
   end
 
   @doc """
-  Sums the amounts of a list of cashflows.
+  Sums the amounts of a list of transfers.
 
   ## Example
 
-      iex> cashflows = [
-      ...>   %Cashflow{amount: Decimal.new("10.00")},
-      ...>   %Cashflow{amount: Decimal.new("20.00")}
+      iex> transfers = [
+      ...>   %Transfer{amount: Decimal.new("10.00")},
+      ...>   %Transfer{amount: Decimal.new("20.00")}
       ...> ]
-      iex> Cashflow.sum_amounts(cashflows)
+      iex> Transfer.sum_amounts(transfers)
       Decimal.new("30.00")
   """
-  @spec sum_amounts([cashflow()]) :: Decimal.t()
-  def sum_amounts(cashflows) do
-    cashflows
+  @spec sum_amounts([transfer()]) :: Decimal.t()
+  def sum_amounts(transfers) do
+    transfers
     |> Enum.map(& &1.amount)
     |> Enum.reduce(0, &Decimal.add/2)
   end

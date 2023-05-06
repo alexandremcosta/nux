@@ -1,6 +1,6 @@
-defmodule NuxWeb.UploadLive do
+defmodule NuxWeb.SheetLive do
   use NuxWeb, :live_view
-  alias Nux.{Cashflow, Sheet}
+  alias Nux.{Transfer, Sheet}
 
   @impl Phoenix.LiveView
   def mount(_params, _session, socket) do
@@ -8,10 +8,10 @@ defmodule NuxWeb.UploadLive do
      socket
      |> assign(:files, [])
      |> assign(:sheet, %{})
-     |> assign(:cashflows, [])
-     |> assign(:cashflow_found, [])
-     |> assign(:cashflow_title, "")
-     |> assign(:cashflow_category, "")
+     |> assign(:transfers, [])
+     |> assign(:transfer_found, [])
+     |> assign(:transfer_title, "")
+     |> assign(:transfer_category, "")
      |> allow_upload(:csv_file, accept: ~w(.csv), max_entries: 100, auto_upload: true)}
   end
 
@@ -29,75 +29,75 @@ defmodule NuxWeb.UploadLive do
   def handle_event("save", _params, socket) do
     files =
       consume_uploaded_entries(socket, :csv_file, fn %{path: path}, %{client_name: filename} ->
-        {:ok, {filename, Cashflow.list_from_file!(path)}}
+        {:ok, {filename, Transfer.list_from_file!(path)}}
       end)
 
     files = files ++ socket.assigns.files
-    cashflows = Enum.flat_map(files, fn {_filename, cashflows} -> cashflows end)
-    sheet = Sheet.group_by_category_and_period(cashflows, :month)
+    transfers = Enum.flat_map(files, fn {_filename, transfers} -> transfers end)
+    sheet = Sheet.group_by_category_and_period(transfers, :month)
 
     {:noreply,
      socket
      |> assign(:files, files)
-     |> assign(:cashflows, cashflows)
+     |> assign(:transfers, transfers)
      |> assign(:sheet, sheet)}
   end
 
   @impl Phoenix.LiveView
   def handle_event("validate_category", params, socket) do
-    %{"cashflow" => %{"title" => subtitle}} = params
+    %{"transfer" => %{"title" => subtitle}} = params
 
     if subtitle == "" do
-      {:noreply, assign(socket, :cashflow_found, [])}
+      {:noreply, assign(socket, :transfer_found, [])}
     else
-      cashflows =
-        socket.assigns.cashflows
+      transfers =
+        socket.assigns.transfers
         |> Enum.filter(fn %{title: title} ->
           String.contains?(String.downcase(title), String.downcase(subtitle))
         end)
         |> Enum.sort_by(& &1.date, {:desc, Date})
 
-      {:noreply, assign(socket, :cashflow_found, cashflows)}
+      {:noreply, assign(socket, :transfer_found, transfers)}
     end
   end
 
   @impl Phoenix.LiveView
-  def handle_event("save_category", %{"cashflow" => params}, socket) do
+  def handle_event("save_category", %{"transfer" => params}, socket) do
     %{"title" => subtitle, "category" => category} = params
     subtitle = String.downcase(subtitle)
 
-    cashflows =
-      socket.assigns.cashflows
-      |> Enum.map(fn cashflow ->
-        if cashflow.title |> String.downcase() |> String.contains?(subtitle) do
-          %{cashflow | category: category}
+    transfers =
+      socket.assigns.transfers
+      |> Enum.map(fn transfer ->
+        if transfer.title |> String.downcase() |> String.contains?(subtitle) do
+          %{transfer | category: category}
         else
-          cashflow
+          transfer
         end
       end)
 
-    sheet = Sheet.group_by_category_and_period(cashflows, :month)
+    sheet = Sheet.group_by_category_and_period(transfers, :month)
 
     {:noreply,
      socket
-     |> assign(:cashflow_found, [])
-     |> assign(:cashflow_title, "")
-     |> assign(:cashflow_category, "")
-     |> assign(:cashflows, cashflows)
+     |> assign(:transfer_found, [])
+     |> assign(:transfer_title, "")
+     |> assign(:transfer_category, "")
+     |> assign(:transfers, transfers)
      |> assign(:sheet, sheet)}
   end
 
   def handle_event("change_form", params, socket) do
     query = params["title"]
 
-    cashflows =
-      socket.assigns.cashflows
+    transfers =
+      socket.assigns.transfers
       |> Enum.filter(fn %{title: title} ->
         String.contains?(String.downcase(title), String.downcase(query))
       end)
       |> Enum.sort_by(& &1.date, {:desc, Date})
 
-    {:noreply, socket |> assign(:cashflow_title, query) |> assign(:cashflow_found, cashflows)}
+    {:noreply, socket |> assign(:transfer_title, query) |> assign(:transfer_found, transfers)}
   end
 
   defp error_to_string(:too_large), do: "Too large"

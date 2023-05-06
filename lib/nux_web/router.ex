@@ -17,8 +17,7 @@ defmodule NuxWeb.Router do
   scope "/", NuxWeb do
     pipe_through :browser
 
-    get "/", PageController, :home
-    live "/uploads", UploadLive
+    live "/", SheetLive
   end
 
   # Other scopes may use custom stacks.
