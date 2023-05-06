@@ -1,68 +1,93 @@
-<p class="text-lg font-bold">Como funciona?</p>
+<div class="grid grid-cols-2 gap-4">
+  <div>
+    <p class="text-lg font-bold">Como funciona?</p>
+    <p>Use qualquer arquivo que obedeça as seguintes regras:</p>
 
-<p class="font-semibold mb-4 text-lg">
-  <ul>
-    <li>
-      1. Entre no site do Nubank pelo computador e exporte os CSVs de faturas do cartão de crédito
-    </li>
-    <li>
-      2. Entre no aplicativo do Nubank pelo celular, peça os extratos pelo menu da conta corrente, e baixe os CSVs no seu email
-    </li>
-    <li>
-      3. Faça o upload dos CSVs aqui, não se preocupe pois nada é salvo no servidor, o código é 100% aberto para inspeção
-    </li>
-    <li>
-      4. Troque a categoria de lançamentos que não estão corretos, e adicione categorias para lançamentos que não tem
-    </li>
-    <li>
-      5. Exporte o resultado e importe no futuro para manter as alterações de categoria
-    </li>
-  </ul>
-</p>
+    <ul class="list-disc">
+      <li>as colunas devem ser separadas por vírgula</li>
+      <li>a primeira linha seja o cabeçalho abaixo</li>
+      <li>
+        as linhas seguintes devem ter os mesmos tipos de campo em ordem, separados por vírgula
+      </li>
+      <li>a data deve estar no formato YYYY-MM-DD</li>
+    </ul>
+  </div>
 
-<section
-  phx-drop-target={@uploads.csv_file.ref}
-  class="inline-block mx-auto rounded-2xl bg-zinc-50 px-2 py-4"
->
-  <p class="font-semibold mb-4 text-lg">
-    Selecione arquivos CSV ou arraste para essa área.
-  </p>
+  <div>
+    <p class="text-lg mt-4 font-bold">Como conseguir esses arquivos?</p>
+    <p>Em cada banco, o método pode variar. Por exemplo, no Nubank:</p>
+    <ol class="list-decimal">
+      <li>
+        Entre no site pelo computador e exporte os CSVs de faturas do cartão de crédito
+      </li>
+      <li>
+        Entre no aplicativo pelo celular, peça os extratos pelo menu da conta corrente, e baixe os CSVs no seu email
+      </li>
+      <li>
+        Faça o upload dos CSVs aqui, não se preocupe pois nada é salvo no servidor, o código é 100% aberto para inspeção
+      </li>
+    </ol>
+    <p>
+      Pronto! Agora você pode trocar as categorias conforme quiser, e salvar os resultados de volta no seu computador!
+    </p>
+  </div>
+</div>
 
-  <%= for entry <- @uploads.csv_file.entries do %>
-    <article class="upload-entry">
-      <p><%= entry.client_name %></p>
+<div class="flex justify-center">
+  <pre class="border-solid border-2 inline-block my-4">
+  <small class="underline">example.csv</small>
+  <code>
+    date,category,title,amount    
+    2021-01-01,food,Mc Donalds,10.00    
+  </code>
+</pre>
+</div>
 
-      <progress value={entry.progress} max="100"><%= entry.progress %>%</progress>
+<div class="flex justify-center">
+  <section
+    phx-drop-target={@uploads.csv_file.ref}
+    class="inline-block mx-auto rounded-2xl bg-zinc-50 px-2 py-4"
+  >
+    <p class="font-semibold mb-4 text-lg">
+      Selecione arquivos CSV ou arraste para essa área.
+    </p>
 
+    <%= for entry <- @uploads.csv_file.entries do %>
+      <article class="upload-entry">
+        <p><%= entry.client_name %></p>
+
+        <progress value={entry.progress} max="100"><%= entry.progress %>%</progress>
+
+        <button
+          type="button"
+          phx-click="cancel-upload"
+          phx-value-ref={entry.ref}
+          aria-label="cancel"
+        >
+          &times;
+        </button>
+
+        <%= for err <- upload_errors(@uploads.csv_file, entry) do %>
+          <p class="alert alert-danger"><%= error_to_string(err) %></p>
+        <% end %>
+      </article>
+    <% end %>
+
+    <%= for err <- upload_errors(@uploads.csv_file) do %>
+      <p class="alert alert-danger"><%= error_to_string(err) %></p>
+    <% end %>
+
+    <form id="upload-form" phx-submit="save" phx-change="validate">
+      <.live_file_input upload={@uploads.csv_file} />
       <button
-        type="button"
-        phx-click="cancel-upload"
-        phx-value-ref={entry.ref}
-        aria-label="cancel"
+        type="submit"
+        class="rounded-lg bg-zinc-200 px-2 py-1 text-[0.8125rem] font-semibold leading-6 text-zinc-900 hover:bg-zinc-300/80 active:text-zinc-900/70"
       >
-        &times;
+        Carregar
       </button>
-
-      <%= for err <- upload_errors(@uploads.csv_file, entry) do %>
-        <p class="alert alert-danger"><%= error_to_string(err) %></p>
-      <% end %>
-    </article>
-  <% end %>
-
-  <%= for err <- upload_errors(@uploads.csv_file) do %>
-    <p class="alert alert-danger"><%= error_to_string(err) %></p>
-  <% end %>
-
-  <form id="upload-form" phx-submit="save" phx-change="validate">
-    <.live_file_input upload={@uploads.csv_file} />
-    <button
-      type="submit"
-      class="rounded-lg bg-zinc-200 px-2 py-1 text-[0.8125rem] font-semibold leading-6 text-zinc-900 hover:bg-zinc-300/80 active:text-zinc-900/70"
-    >
-      Carregar
-    </button>
-  </form>
-</section>
+    </form>
+  </section>
+</div>
 
 <%= if Enum.any?(@files) do %>
   <details>
@@ -128,7 +153,7 @@
     </table>
   </div>
 
-  <div class="grid grid-cols-2">
+  <div class="grid grid-cols-2 gap-4">
     <div>
       <h3 class="font-semibold mt-4 text-lg">Lançamentos</h3>
 
