@@ -34,7 +34,7 @@
 </div>
 
 <div class="flex justify-center">
-  <pre class="border-solid border-2 inline-block my-4">
+  <pre class="border-solid border-2 inline-block my-4 shadow-lg">
   <small class="underline">example.csv</small>
   <code>
     date,category,title,amount    
@@ -46,7 +46,7 @@
 <div class="flex justify-center">
   <section
     phx-drop-target={@uploads.csv_file.ref}
-    class="inline-block mx-auto rounded-2xl bg-zinc-50 px-2 py-4"
+    class="inline-block mx-auto rounded-2xl bg-zinc-50 p-8 shadow-lg"
   >
     <p class="font-semibold mb-4 text-lg">
       Selecione arquivos CSV ou arraste para essa área.
